@@ -5,10 +5,10 @@ Este arquivo é um modelo versionado para as Configurações do Projeto. Ele nã
 ## Valores aplicados
 
 ```text
-HARNESS_REPOSITORY = <OWNER_REPOSITORY>
-PRODUCT_REPOSITORY = <OWNER_REPOSITORY>
+HARNESS_REPOSITORY = luizfsf2/TimerOS
+PRODUCT_REPOSITORY = luizfsf2/TimerOS
 HARNESS_BRANCH = harness
-WORKSPACE_ROOT = <PASTA_DRIVE_OPERACIONAL>
+WORKSPACE_ROOT = https://drive.google.com/drive/folders/1rGIBssSp2eT3xWRTL1yglhQnoj6xj8WX
 PRODUCT_PROFILE = none
 ```
 
