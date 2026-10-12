@@ -1,0 +1,40 @@
+QA_CONTRACT_VERSION: H3.0.0
+QA_ID: QA-H3-<front_id>-001
+QA_PURPOSE: FORMAL
+front_id: <front_id>
+HARNESS_REF: <SHA exato de 40 hex copiado do ACTIVE>
+CREATED_AT: <ISO 8601 com timezone, ex. 2026-10-01T01:54:28-03:00>
+REVISION_POLICY: EXACT
+EXPECT_BRANCH: <branch ou vazio>
+EXPECT_HEAD: <commit_sha ou vazio>
+RESULT_DESTINATION: .tmp/qa/run/result/
+
+[OBJECTIVE]
+<objetivo verificável da rodada>
+
+[CONTEXT]
+<contexto suficiente para não reconstruir a frente por tentativa e erro>
+
+[DECISIONS]
+<decisões materiais relevantes para interpretar o esperado>
+
+[DELTA]
+<o que mudou ou qual recorte deve ser validado>
+
+[RISKS]
+<riscos conhecidos, regressões prováveis e pontos sensíveis>
+
+[EXPECTED_BEHAVIOR]
+<comportamento/aceite esperado>
+
+[TESTS_ALREADY_RUN]
+<checagens já executadas, resultados e limites>
+
+[SCOPE]
+<áreas, casos e autonomia investigativa>
+
+[LIMITS]
+<proibições, autorizações e efeitos externos não permitidos>
+
+[RETURN_CONTRACT]
+<resultado por área; revisão testada; comandos; falhas reproduzíveis; causa provável; logs/screenshots/artifacts; limitações; revalidação pendente; ação necessária>

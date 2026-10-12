@@ -1,0 +1,7 @@
+{
+  "format_version": 1,
+  "base_release": "h3.0.1",
+  "state": "BASELINE",
+  "applied_patches": [],
+  "rolled_back_patches": []
+}
