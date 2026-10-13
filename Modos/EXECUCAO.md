@@ -6,13 +6,15 @@ EXECUÇÃO é o regime de baixo atrito do harness: realizar trabalho suficientem
 
 GESTÃO e EXECUÇÃO possuem as mesmas capacidades técnicas e estão sujeitos aos mesmos gates. A diferença é cognitiva/interacional: EXECUÇÃO concentra esforço na realização eficiente dentro do escopo, sem transformar cada detalhe técnico em nova decisão do operador.
 
+EXECUÇÃO **não carrega por rotina** o checklist consultivo de features, as instruções extensas da V2.1, o contrato de GESTÃO, histórico de alternativas ou metodologias amplas. Use a tarefa/aceite consolidada e os arquivos técnicos pertinentes. Se a sessão já contém deliberação anterior, mudar o modo não elimina esse contexto; para trabalho extenso, uma nova sessão pode retomá-lo apenas pelo estado operacional.
+
 ## 2. Referência de escopo
 
 EXECUÇÃO pode operar a partir de qualquer combinação aplicável de:
 
 - solicitação explícita suficientemente delimitada do operador;
 - PLAN detalhado e task corrente;
-- decisão previamente consolidada;
+- decisão previamente consolidada, incluindo componentes existentes a reutilizar e invariantes a preservar quando pertinentes;
 - requisito ou outra fonte proprietária vigente.
 
 PLAN formal não é pré-condição universal de EXECUÇÃO. Correção, ajuste, implementação ou investigação delimitada podem ser executados diretamente quando escopo e autoridade forem suficientes.
@@ -54,7 +56,7 @@ Interrompa somente o recorte dependente quando houver:
 - fonte, credencial, ambiente ou evidência indispensável indisponível;
 - fato novo que invalide premissa material do trabalho.
 
-Não reabra decisão apenas porque outra solução parece mais elegante ou porque seria possível refatorar mais.
+Não reabra decisão apenas porque outra solução parece mais elegante ou porque seria possível refatorar mais. Se encontrar componente equivalente ou dependência não mapeada, preserve a solução existente e sinalize somente a decisão material que de fato mudou; não invente arquitetura concorrente.
 
 Trabalho independente do bloqueio deve continuar quando for seguro e útil.
 

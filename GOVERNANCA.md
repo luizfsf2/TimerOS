@@ -26,7 +26,7 @@ Preferir modelo atual limpo não autoriza reset, migration ou mutação comparti
 
 ## 3. Gates
 
-Os gates abaixo são ortogonais aos modos. A mesma ação recebe o mesmo tratamento em GESTÃO e EXECUÇÃO; mudar de modo não concede nem remove autorização. Os contratos de modo podem exigir uma etapa deliberativa ou uma semântica de comando antes da materialização, mas não redefinem nem satisfazem estes gates.
+Os gates abaixo são ortogonais aos modos. A mesma ação recebe o mesmo tratamento em GESTÃO e EXECUÇÃO; mudar de modo não concede nem remove autorização. Os contratos de modo podem orientar a deliberação e a comunicação, mas **não podem acrescentar autorização operacional**, inclusive um `AUTORIZO` adicional exclusivo de GESTÃO. Pedido explícito de implementação suficientemente delimitado autoriza trabalho não gated em ambos os modos. A escolha de modo não satisfaz gates independentes, nem transforma análise ou concordância com uma proposta em ordem de escrita.
 
 Permitido dentro do escopo já autorizado:
 

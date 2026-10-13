@@ -31,27 +31,29 @@ GESTÃO e EXECUÇÃO compartilham as mesmas capacidades técnicas e estão sujei
 
 Com frente ativa, ACTIVE é sempre o snapshot inicial e fornece modo, `Harness ref`, branch/HEAD observado quando aplicável, task corrente e próxima ação. Depois disso, roteie contexto pelo modo e pelo recorte real:
 
-### GESTÃO
+### GESTÃO — planejador/consultor
 
-- use a solicitação corrente, ACTIVE e as fontes proprietárias necessárias para compreender e confrontar a direção;
-- leia somente a seção pertinente do PLAN quando houver decisão, task, aceite, dependência ou risco durável que realmente governe a discussão;
-- amplie para PRD/Glossário, implementação, arquitetura, segurança, histórico funcional ou metodologia somente quando isso puder mudar materialmente a recomendação;
-- depois de `AUTORIZO`, carregue as fontes de implementação/validação necessárias ao recorte autorizado e execute-o sem reconstruir a deliberação nem pedir confirmação por arquivo ou por microdecisão equivalente;
-- se surgir fato novo material, amplie contexto somente no proprietário afetado e interrompa apenas o recorte dependente conforme `Modos/GESTAO.md`.
+- use solicitação corrente, ACTIVE e fontes proprietárias pertinentes para compreender problema e decisões;
+- investigue espontaneamente solução vigente, reuso, duplicação, impactos, invariantes, boas práticas e alternativas materialmente relevantes **antes** de recomendar ou criar plano;
+- quando houver **planejamento ou revisão de feature relevante**, carregue `methodologies/PLANEJAMENTO_E_IMPLEMENTACAO.md` e aplique seu checklist interno proporcional, sem pedir ao operador que o preencha;
+- leia do PLAN apenas recortes que realmente governam a decisão; amplie pesquisa ao código, testes, PRD/perfil, arquitetura e histórico somente quando puder alterar recomendação;
+- pedido de deliberação produz recomendação/decisão, sem implementação por inferência; pedido **explícito** de materialização não gated permite executar, após avaliação, sem exigir `AUTORIZO` exclusivo do modo;
+- ao concluir deliberação relevante, entregue handoff conciso à EXECUÇÃO no PLAN/proprietário existente: objetivo, componentes a reusar, invariantes, riscos, limites, gates e aceite;
+- se surgir fato material novo, amplie contexto somente no proprietário afetado e interrompa apenas a parte dependente.
 
 ### EXECUÇÃO com plano formal aplicável
 
 - leia somente a task corrente do PLAN e seus elementos necessários: objetivo, aceite, dependências/gates, decisões duráveis e evidência esperada;
 - carregue as fontes proprietárias, implementação e testes necessários para realizar e validar essa task;
-- não reconstrua a deliberação que já está consolidada no PLAN ou em outra fonte proprietária;
-- não leia histórico concluído, alternativas descartadas ou contexto amplo por rotina.
+- não reconstrua a deliberação ou refaça o checklist de GESTÃO já consolidado; use o que foi decidido e preserve os componentes/invariantes identificados;
+- não leia V2.1 integral, `Modos/GESTAO.md`, histórico concluído, alternativas descartadas ou metodologias amplas por rotina.
 
 ### EXECUÇÃO sem plano formal aplicável
 
 - use a solicitação explícita, ACTIVE e as fontes proprietárias relevantes como base do recorte;
 - não crie, expanda ou leia PLAN apenas para satisfazer cerimônia quando nenhuma task formal governa o pedido;
 - PLAN existente é consultado somente se contiver decisão, limite ou dependência que realmente afete o trabalho solicitado;
-- carregue implementação, testes e configuração no menor recorte suficiente para executar e validar;
+- carregue implementação, testes e configuração no menor recorte suficiente para executar e validar, sem carregar o checklist consultivo por rotina;
 - se surgir nova decisão material, conflito de fonte, gate ou fato novo, interrompa somente o recorte dependente, explique o impacto e peça a menor decisão ou ação necessária conforme `Modos/EXECUCAO.md`.
 
 ### Bootstrap de QA V3
@@ -106,7 +108,9 @@ Carregue somente o necessário para decidir ou executar a próxima ação.
 
 A largura do contexto segue o regime:
 - em GESTÃO, amplie o suficiente para comparar consequências e melhorar a decisão;
-- em EXECUÇÃO, aprofunde apenas o recorte necessário para implementar e validar com segurança.
+- em EXECUÇÃO, aprofunde apenas o recorte necessário para implementar e validar com segurança; não importa automaticamente a deliberação de GESTÃO nem as instruções extensas da V2.1.
+
+Trocar de modo na mesma conversa muda o **roteamento de novas leituras**, mas não remove contexto previamente acumulado. Para implementação extensa, uma nova sessão em EXECUÇÃO pode retomar pelo ACTIVE/PLAN, sem ser gate ou obrigação.
 
 Por rotina, não carregue:
 - PLAN inteiro quando uma seção ou nenhum trecho basta;
