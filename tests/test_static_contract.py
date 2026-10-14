@@ -139,13 +139,9 @@ def test_qa_helper_version():
 def test_editorial_rewording_does_not_break_contract():
     docs = current_docs()
     source = docs['Modos/GESTAO.md']
-    old = 'A decisão material pertence ao operador.'
+    old = 'Confrontar uma proposta não significa criar oposição artificial.'
     assert old in source
-    docs['Modos/GESTAO.md'] = source.replace(
-        old,
-        'A palavra final sobre decisões materiais permanece com o operador.',
-        1,
-    )
+    docs['Modos/GESTAO.md'] = source.replace(old, 'Confrontar uma proposta não exige oposição artificial.', 1)
     assert vh.validate_docs(docs) == []
 
 
@@ -154,98 +150,89 @@ def test_shared_mode_capabilities_cannot_regress():
     source = docs['AGENTS.md']
     old = 'GESTÃO e EXECUÇÃO compartilham as mesmas capacidades técnicas e estão sujeitos aos mesmos gates.'
     assert old in source
-    docs['AGENTS.md'] = source.replace(
-        old,
-        'GESTÃO e EXECUÇÃO usam capacidades técnicas e gates diferentes.',
-        1,
-    )
-    issues = vh.validate_docs(docs)
-    assert any('shared technical capabilities' in issue or 'gates orthogonal' in issue for issue in issues)
+    docs['AGENTS.md'] = source.replace(old, 'GESTÃO e EXECUÇÃO usam capacidades e gates diferentes.', 1)
+    assert any('shared technical capabilities' in issue for issue in vh.validate_docs(docs))
 
 
-def test_gestao_requires_critical_evaluation_for_new_direction():
+def test_gestao_must_evaluate_before_recommendation():
     docs = current_docs()
     source = docs['Modos/GESTAO.md']
-    old = 'Toda nova direção relevante em GESTÃO recebe avaliação crítica explícita antes da materialização.'
+    old = 'A análise precede a recomendação'
     assert old in source
-    docs['Modos/GESTAO.md'] = source.replace(
-        old,
-        'Somente direções consideradas arriscadas recebem avaliação crítica.',
-        1,
-    )
-    issues = vh.validate_docs(docs)
-    assert any('critical evaluation' in issue for issue in issues)
+    docs['Modos/GESTAO.md'] = source.replace(old, 'A análise sucede a recomendação', 1)
+    assert any('critical evaluation' in issue for issue in vh.validate_docs(docs))
 
 
-def test_gestao_imperative_does_not_authorize_materialization():
+def test_consultation_cannot_become_an_order():
     docs = current_docs()
     source = docs['Modos/GESTAO.md']
-    old = 'Por si só, não autoriza edição persistente, implementação ou outro efeito material.'
+    old = 'não transformar sugestão do próprio agente em ordem'
     assert old in source
-    docs['Modos/GESTAO.md'] = source.replace(
-        old,
-        'Por si só, autoriza edição persistente, implementação e outros efeitos materiais.',
-        1,
-    )
-    issues = vh.validate_docs(docs)
-    assert any('imperative can materialize' in issue for issue in issues)
+    docs['Modos/GESTAO.md'] = source.replace(old, 'transformar sugestão do próprio agente em ordem', 1)
+    assert any('consultation can become' in issue for issue in vh.validate_docs(docs))
 
 
-def test_concordo_neither_materializes_nor_satisfies_gates():
+def test_explicit_implementation_has_no_extra_mode_gate():
     docs = current_docs()
     source = docs['Modos/GESTAO.md']
-    old = 'Não materializa, não muda o modo e não satisfaz gate independente.'
+    old = 'sem exigir a palavra `AUTORIZO`'
     assert old in source
-    docs['Modos/GESTAO.md'] = source.replace(
-        old,
-        'Materializa a proposta e satisfaz o gate independente.',
-        1,
-    )
-    issues = vh.validate_docs(docs)
-    assert any('CONCORDO can materialize' in issue for issue in issues)
-    assert any('CONCORDO can satisfy a gate' in issue for issue in issues)
+    docs['Modos/GESTAO.md'] = source.replace(old, 'exigindo a palavra `AUTORIZO`', 1)
+    assert any('exclusive AUTORIZO gate' in issue for issue in vh.validate_docs(docs))
 
 
-def test_autorizo_includes_technical_details_without_expanding_material_decision():
+def test_concordo_never_satisfies_a_gate():
     docs = current_docs()
     source = docs['Modos/GESTAO.md']
-    old = 'O recorte autorizado inclui detalhes locais, reversíveis e tecnicamente equivalentes necessários para completar a ação'
+    old = 'não é ordem genérica para implementar nem satisfaz gate independente'
     assert old in source
-    docs['Modos/GESTAO.md'] = source.replace(
-        old,
-        'O recorte autorizado exclui detalhes locais, reversíveis e tecnicamente equivalentes necessários para completar a ação',
-        1,
-    )
-    issues = vh.validate_docs(docs)
-    assert any('technical-detail scope' in issue for issue in issues)
+    docs['Modos/GESTAO.md'] = source.replace(old, 'autoriza implementar e satisfaz gate independente', 1)
+    assert any('CONCORDO may materialize' in issue for issue in vh.validate_docs(docs))
 
 
-def test_new_material_decision_interrupts_only_dependent_scope_in_gestao():
+def test_autorizo_is_not_universal():
     docs = current_docs()
     source = docs['Modos/GESTAO.md']
-    old = 'Fato novo material interrompe somente o recorte dependente.'
+    old = 'não é token universal exigido'
     assert old in source
-    docs['Modos/GESTAO.md'] = source.replace(
-        old,
-        'Fato novo material amplia automaticamente o escopo autorizado.',
-        1,
-    )
-    issues = vh.validate_docs(docs)
-    assert any('dependent-scope interruption' in issue for issue in issues)
+    docs['Modos/GESTAO.md'] = source.replace(old, 'é token universal exigido', 1)
+    assert any('mandatory for all writes' in issue for issue in vh.validate_docs(docs))
+
+
+def test_local_microdecisions_remain_autonomous():
+    docs = current_docs()
+    source = docs['Modos/GESTAO.md']
+    old = 'sem transferir microdecisões ao operador'
+    assert old in source
+    docs['Modos/GESTAO.md'] = source.replace(old, 'transferindo microdecisões ao operador', 1)
+    assert any('technical-detail autonomy' in issue for issue in vh.validate_docs(docs))
+
+
+def test_material_change_interrupts_only_dependent_scope():
+    docs = current_docs()
+    source = docs['AGENTS.md']
+    old = 'interrompa apenas a parte dependente'
+    assert old in source
+    docs['AGENTS.md'] = source.replace(old, 'interrompa toda a execução', 1)
+    assert any('bounded interruption' in issue for issue in vh.validate_docs(docs))
+
+
+def test_feature_checklist_dimension_cannot_disappear():
+    docs = current_docs()
+    source = docs['methodologies/PLANEJAMENTO_E_IMPLEMENTACAO.md']
+    old = '8. **Plano incremental:**'
+    assert old in source
+    docs['methodologies/PLANEJAMENTO_E_IMPLEMENTACAO.md'] = source.replace(old, '8. **Plano não definido:**', 1)
+    assert any('feature checklist missing dimension 8' in issue for issue in vh.validate_docs(docs))
 
 
 def test_execucao_with_plan_does_not_reconstruct_deliberation():
     docs = current_docs()
     source = docs['AGENTS.md']
-    old = '- não reconstrua a deliberação que já está consolidada no PLAN ou em outra fonte proprietária;'
+    old = 'não reconstrua a deliberação ou refaça o checklist de GESTÃO'
     assert old in source
-    docs['AGENTS.md'] = source.replace(
-        old,
-        '- reconstrua toda a deliberação antes de executar a task;',
-        1,
-    )
-    issues = vh.validate_docs(docs)
-    assert any('EXECUCAO-with-plan focused routing' in issue for issue in issues)
+    docs['AGENTS.md'] = source.replace(old, 'reconstrua a deliberação e refaça o checklist de GESTÃO', 1)
+    assert any('EXECUCAO-with-plan focused routing' in issue for issue in vh.validate_docs(docs))
 
 
 def test_execucao_without_plan_does_not_require_artificial_plan():
@@ -253,13 +240,8 @@ def test_execucao_without_plan_does_not_require_artificial_plan():
     source = docs['Modos/EXECUCAO.md']
     old = 'PLAN formal não é pré-condição universal de EXECUÇÃO.'
     assert old in source
-    docs['Modos/EXECUCAO.md'] = source.replace(
-        old,
-        'PLAN formal é pré-condição universal de EXECUÇÃO.',
-        1,
-    )
-    issues = vh.validate_docs(docs)
-    assert any('requires a formal PLAN' in issue for issue in issues)
+    docs['Modos/EXECUCAO.md'] = source.replace(old, 'PLAN formal é pré-condição universal de EXECUÇÃO.', 1)
+    assert any('requires a formal PLAN' in issue for issue in vh.validate_docs(docs))
 
 
 def test_gates_remain_orthogonal_across_modes():

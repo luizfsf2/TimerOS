@@ -191,44 +191,44 @@ def validate_docs(docs: dict[str, str]) -> list[str]:
             'FRONT_TEMPLATE requires CHECKLIST', issues)
 
     gestao = docs.get('Modos/GESTAO.md', '')
-    gestao_commands = heading_section(gestao, 2, 'comandos', 'materialização')
-    require('CONCORDO' in gestao and 'AUTORIZO' in gestao, 'GESTAO missing concordance/authorization boundary', issues)
-    require(re.search(r'(?i)materializa', gestao) is not None, 'GESTAO missing materialization boundary', issues)
-    require(
-        re.search(r'(?is)\b(?:toda|cada)\b.{0,60}\bdireção\b.{0,180}\bavaliação crítica\b', gestao) is not None,
-        'GESTAO missing universal proportional critical evaluation',
-        issues,
+    pedidos = heading_section(gestao, 2, 'pedido', 'decisão', 'execução')
+    planning = docs.get('methodologies/PLANEJAMENTO_E_IMPLEMENTACAO.md', '')
+    require('planejador/consultor' in gestao and
+            'julgamento técnico espontaneamente' in gestao,
+            'GESTAO missing proactive consultant role', issues)
+    require('A análise precede a recomendação' in gestao,
+            'GESTAO missing critical evaluation before recommendation', issues)
+    require(bool(pedidos) and
+            'Pedido de análise, revisão, planejamento ou opinião' in pedidos and
+            'não transformar sugestão do próprio agente em ordem' in pedidos,
+            'GESTAO consultation can become an implementation order', issues)
+    require(bool(pedidos) and
+            'Pedido explícito para implementar' in pedidos and
+            'sem exigir a palavra `AUTORIZO`' in pedidos,
+            'GESTAO adds exclusive AUTORIZO gate for explicit work', issues)
+    require('não é ordem genérica para implementar nem satisfaz gate independente' in pedidos,
+            'GESTAO CONCORDO may materialize or satisfy a gate', issues)
+    require('não é token universal exigido' in pedidos,
+            'GESTAO AUTORIZO treated as mandatory for all writes', issues)
+    require('Detalhes locais equivalentes e reversíveis' in pedidos and
+            'sem transferir microdecisões ao operador' in pedidos,
+            'GESTAO missing bounded technical-detail autonomy', issues)
+    require('continuar partes independentes e seguras' in pedidos,
+            'GESTAO missing dependent-scope interruption', issues)
+    require('nove dimensões' in gestao and
+            'methodologies/PLANEJAMENTO_E_IMPLEMENTACAO.md' in gestao,
+            'GESTAO missing proportional feature-planning checklist route', issues)
+    dimensions = (
+        'Problema e objetivo', 'Investigação do existente', 'Reuso e duplicidade',
+        'Requisitos e decisões vigentes', 'Alternativas e boas práticas',
+        'Análise de impacto', 'Preservação e regressões', 'Plano incremental',
+        'Critérios de aceite',
     )
-    require(
-        re.search(r'(?is)(pedido|imperativo).{0,220}por si só.{0,80}não autoriza', gestao_commands) is not None,
-        'GESTAO imperative can materialize without AUTORIZO',
-        issues,
-    )
-    require(
-        re.search(r'(?is)CONCORDO.{0,260}não materializa', gestao_commands) is not None,
-        'GESTAO CONCORDO can materialize',
-        issues,
-    )
-    require(
-        re.search(r'(?is)CONCORDO.{0,320}não satisfaz.{0,80}gate', gestao_commands) is not None,
-        'GESTAO CONCORDO can satisfy a gate',
-        issues,
-    )
-    require(
-        re.search(r'(?is)AUTORIZO.{0,260}autoriza.{0,160}materializa', gestao_commands) is not None,
-        'GESTAO AUTORIZO missing materialization semantics',
-        issues,
-    )
-    require(
-        re.search(r'(?is)recorte autorizado.{0,100}inclui.{0,220}(detalhes locais|microdecis)', gestao_commands) is not None,
-        'GESTAO AUTORIZO missing technical-detail scope',
-        issues,
-    )
-    require(
-        re.search(r'(?is)(fato novo material|decisão material nova).{0,180}interrompe.{0,120}recorte dependente', gestao_commands) is not None,
-        'GESTAO missing dependent-scope interruption for new material decision',
-        issues,
-    )
+    for number, item in enumerate(dimensions, 1):
+        require(f'{number}. **{item}:**' in planning,
+                f'feature checklist missing dimension {number}: {item}', issues)
+    require('Não criar `CHECKLIST.md`' in planning,
+            'feature checklist may create extra document or gate', issues)
 
     execucao = docs.get('Modos/EXECUCAO.md', '')
     require(re.search(r'(?i)microdecis', execucao) is not None, 'EXECUCAO missing technical microdecision autonomy', issues)
@@ -252,18 +252,19 @@ def validate_docs(docs: dict[str, str]) -> list[str]:
     exec_no_plan_route = heading_section(agents, 3, 'execução', 'sem plano formal')
     require(
         gestao_route
-        and re.search(r'(?is)AUTORIZO.{0,360}(sem reconstruir|não reconstr)', gestao_route) is not None
-        and re.search(r'(?is)(microdecis|confirmação por arquivo)', gestao_route) is not None,
-        'AGENTS missing post-AUTORIZO technical-detail routing in GESTAO',
-        issues,
+        and 'checklist interno proporcional' in gestao_route
+        and 'pedido **explícito** de materialização não gated' in gestao_route
+        and 'sem exigir `AUTORIZO` exclusivo do modo' in gestao_route,
+        'AGENTS missing GESTAO critical-plan/direct-request routing', issues,
     )
     require(
         exec_plan_route
-        and re.search(r'(?is)task corrente', exec_plan_route) is not None
-        and re.search(r'(?is)não reconstrua.{0,120}deliberação', exec_plan_route) is not None,
-        'AGENTS missing EXECUCAO-with-plan focused routing',
-        issues,
+        and 'task corrente' in exec_plan_route
+        and 'não reconstrua a deliberação ou refaça o checklist de GESTÃO' in exec_plan_route,
+        'AGENTS missing EXECUCAO-with-plan focused routing', issues,
     )
+    require('interrompa apenas a parte dependente' in gestao_route,
+            'AGENTS missing bounded interruption rule for material changes', issues)
     require(
         exec_no_plan_route
         and re.search(r'(?is)solicitação explícita', exec_no_plan_route) is not None
@@ -273,6 +274,8 @@ def validate_docs(docs: dict[str, str]) -> list[str]:
     )
 
     gov = docs.get('GOVERNANCA.md', '')
+    require('não podem acrescentar autorização operacional' in gov,
+            'GOVERNANCA may add mode-exclusive operational gates', issues)
     for words in [('papel', 'autoridade'), ('legado',), ('gates',), ('segurança',), ('evidência',), ('beta', 'release')]:
         require(has_heading(gov, *words), f'GOVERNANCA missing section: {"/".join(words)}', issues)
     for concept, pattern in [
