@@ -187,6 +187,31 @@ impl JsonStore {
     }
 }
 
+/// Restauracao SOMENTE apos escolha explicita; nunca efetuada durante boot.
+/// Guarda os bytes suspeitos em arquivo forense antes da substituicao.
+pub fn restore_backup_explicit(data_dir:&Path, owner:&str, confirmed:bool)->Result<PathBuf> {
+    if !confirmed {bail!("restauracao exige confirmacao explicita");}
+    let (file,valid)=match owner {
+        "config"=>("config.json",true),
+        "state"=>("state.json",false),
+        _=>bail!("proprietario desconhecido"),
+    };
+    let path=data_dir.join(file);
+    let backup=data_dir.join(format!("{file}.bak"));
+    let backup_bytes=fs::read(&backup).context("backup inexistente ou ilegivel")?;
+    if valid {
+        let value:ConfigSnapshot=serde_json::from_slice(&backup_bytes)?;value.validate()?;
+    } else {
+        let value:StateSnapshot=serde_json::from_slice(&backup_bytes)?;value.validate()?;
+    }
+    let suspect=fs::read(&path).context("arquivo suspeito ausente; nao sobrescrever")?;
+    let forensic=data_dir.join(format!("{file}.corrupt.{}",Uuid::new_v4()));
+    write_synced(&forensic,&suspect)?;
+    // Substituicao atomica no mesmo volume sem promover suspeito ao backup.
+    write_atomically(&path,&backup_bytes)?;
+    Ok(forensic)
+}
+
 fn write_synced(path:&Path, bytes:&[u8])->Result<()> {
     let mut file=OpenOptions::new().write(true).create_new(true).open(path)?;
     file.write_all(bytes)?;file.flush()?;file.sync_all()?;Ok(())
