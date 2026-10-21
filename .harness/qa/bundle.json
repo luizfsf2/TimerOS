@@ -1,0 +1,27 @@
+{
+  "assets": {
+    "QA_AGENT_MAIN_PROMPT.md": {
+      "sha256": "94185e7e244936fc8dc568be55bd74168e9b8dc8da00b3e1f9f801843800dec6",
+      "size": 7870,
+      "source_path": "prompts/QA_AGENT_MAIN_PROMPT.md"
+    },
+    "qa_harness.py": {
+      "sha256": "3b33a4393f0da4914b75edac4882e64b1e69638f7e3fd88f703e8ed4007f387c",
+      "size": 19103,
+      "source_path": "tools/qa_harness.py"
+    },
+    "qa_launcher.py": {
+      "sha256": "e3de30da85f66e90df85645d7b16d42ef7580eb70662b4df539a0a1efd4f0967",
+      "size": 10643,
+      "source_path": "tools/qa_launcher.py"
+    }
+  },
+  "bundle_format": "H3-QA-LOCAL-BUNDLE-1",
+  "front_id": "implementacao-timeros-v1",
+  "harness_ref": "9926a5f6445a831376158b326a32936966df0526",
+  "harness_repository": "luizfsf2/TimerOS",
+  "local_qa_drive_required": false,
+  "product_head_before_bundle": "10a2da62fda7e3ad0aacd68c841726409f14f972",
+  "source_verified_by": "INSTALLER_CONTROLLER_PINNED_READBACK",
+  "target_branch": "feature/v1"
+}
