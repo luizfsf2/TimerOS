@@ -93,3 +93,16 @@ fn stale_revision_and_unknown_envelope_rejected() {
     std::fs::write(dir.path().join("config.json"),r#"{"schema_version":99}"#).unwrap();
     assert!(JsonStore::open(dir.path()).is_err());
 }
+
+#[test]
+fn explicit_restore_preserves_forensic_bytes() {
+    let (dir,_)=fixture();let mut store=JsonStore::open(dir.path()).unwrap();
+    store.commit_config(0,store.config.clone(),"2026-10-21T01:00:00Z").unwrap();
+    drop(store);
+    let bad=b"{BROKEN";
+    std::fs::write(dir.path().join("config.json"),bad).unwrap();
+    assert!(timeros_core::persistence::json::restore_backup_explicit(dir.path(),"config",false).is_err());
+    let copy=timeros_core::persistence::json::restore_backup_explicit(dir.path(),"config",true).unwrap();
+    assert_eq!(std::fs::read(copy).unwrap(),bad);
+    assert!(JsonStore::open(dir.path()).is_ok());
+}
