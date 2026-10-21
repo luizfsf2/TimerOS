@@ -1,0 +1,13 @@
+[package]
+name = "timeros-core"
+version = "0.1.0"
+edition = "2021"
+description = "Core de dominio testavel do TimerOS (fase I01)"
+license = "UNLICENSED"
+publish = false
+
+[lib]
+name = "timeros_core"
+path = "src/lib.rs"
+
+[dependencies]
