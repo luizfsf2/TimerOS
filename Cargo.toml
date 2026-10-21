@@ -2,12 +2,35 @@
 name = "timeros-core"
 version = "0.1.0"
 edition = "2021"
-description = "Core de dominio testavel do TimerOS (fase I01)"
+description = "TimerOS Core e persistencia local (I02)"
 license = "UNLICENSED"
 publish = false
+build = "build.rs"
 
 [lib]
 name = "timeros_core"
 path = "src/lib.rs"
 
+[[bin]]
+name = "timeros"
+path = "src/main.rs"
+required-features = ["desktop"]
+
+[features]
+default = []
+desktop = ["dep:slint", "dep:slint-build"]
+
 [dependencies]
+rusqlite = { version = "0.37", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["clock"] }
+uuid = { version = "1", features = ["v4"] }
+slint = { version = "1.13", optional = true, default-features = false, features = ["std", "backend-winit", "renderer-software", "compat-1-2"] }
+
+[build-dependencies]
+slint-build = { version = "1.13", optional = true }
+
+[dev-dependencies]
+tempfile = "3"
+anyhow = "1"

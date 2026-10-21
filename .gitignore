@@ -1,3 +1,7 @@
 /target/
+/data/
+/.tmp/
+*.db-wal
+*.db-shm
 *.pdb
 *.rs.bk

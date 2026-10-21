@@ -1,0 +1,39 @@
+import { Button, LineEdit, VerticalBox, HorizontalBox } from "std-widgets.slint";
+export component AppWindow inherits Window {
+    title: "TimerOS - fluxo inicial I02";
+    width: 580px;
+    height: 420px;
+    in-out property <string> project-name: "";
+    in-out property <string> task-name: "";
+    in property <string> status-line: "Pronto";
+    in property <string> project-metrics: "Sem projeto selecionado";
+    in property <string> task-status: "Sem tarefa selecionada";
+    callback create-project(string);
+    callback create-task(string);
+    callback start-task();
+    callback pause-task();
+    callback resume-task();
+    callback refresh();
+    VerticalBox {
+        padding: 18px;
+        spacing: 12px;
+        Text { text: "TimerOS - projeto e tarefa"; font-size: 22px; }
+        HorizontalBox {
+            LineEdit { text <=> root.project-name; placeholder-text: "Nome do projeto"; }
+            Button { text: "Criar projeto"; clicked => { root.create-project(root.project-name); } }
+        }
+        HorizontalBox {
+            LineEdit { text <=> root.task-name; placeholder-text: "Nome da tarefa"; }
+            Button { text: "Criar tarefa"; clicked => { root.create-task(root.task-name); } }
+        }
+        Text { text: root.project-metrics; }
+        Text { text: root.task-status; }
+        HorizontalBox {
+            Button { text: "Iniciar"; clicked => { root.start-task(); } }
+            Button { text: "Pausar"; clicked => { root.pause-task(); } }
+            Button { text: "Retomar"; clicked => { root.resume-task(); } }
+            Button { text: "Atualizar"; clicked => { root.refresh(); } }
+        }
+        Text { text: root.status-line; wrap: word-wrap; }
+    }
+}
