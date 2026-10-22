@@ -165,3 +165,88 @@ fn explicit_restore_preserves_forensic_bytes() {
     assert_eq!(std::fs::read(copy).unwrap(), bad);
     assert!(JsonStore::open(dir.path()).is_ok());
 }
+
+#[test]
+fn json_defaults_not_created_over_existing_database() {
+    let (dir, _) = fixture();
+    std::fs::write(dir.path().join("timeros.db"), b"preexisting").unwrap();
+    assert!(JsonStore::open(dir.path()).is_err());
+    assert!(!dir.path().join("config.json").exists());
+    assert!(!dir.path().join("state.json").exists());
+}
+
+#[test]
+fn json_fresh_install_with_instance_lock_file_is_allowed() {
+    let (dir, _) = fixture();
+    std::fs::write(dir.path().join(".timeros.lock"), b"").unwrap();
+    let store = JsonStore::open(dir.path()).unwrap();
+    assert_eq!(store.config.revision, 0);
+    assert_eq!(store.state.revision, 0);
+}
+
+#[test]
+fn json_stale_writer_cannot_overwrite_disk_revision() {
+    let (dir, _) = fixture();
+    let mut first = JsonStore::open(dir.path()).unwrap();
+    let mut stale = JsonStore::open(dir.path()).unwrap();
+    first
+        .commit_config(0, first.config.clone(), "2026-10-21T01:00:00Z")
+        .unwrap();
+    let durable = std::fs::read(dir.path().join("config.json")).unwrap();
+    assert!(stale
+        .commit_config(0, stale.config.clone(), "2026-10-21T01:10:00Z")
+        .is_err());
+    assert_eq!(std::fs::read(dir.path().join("config.json")).unwrap(), durable);
+    assert_eq!(stale.config.revision, 0);
+}
+
+#[test]
+fn sqlite_open_entry_uniqueness_and_checks_are_enforced() {
+    let (dir, clock) = fixture();
+    let path = dir.path().join("db");
+    let mut repo = WorkRepository::open(&path, clock).unwrap();
+    let project_id = repo.create_project("P").unwrap();
+    let task_id = repo.create_task(&project_id, "T").unwrap();
+    repo.transition(&task_id, "start").unwrap();
+    let db = rusqlite::Connection::open(path).unwrap();
+    assert!(db
+        .execute(
+            "INSERT INTO time_entries (id, task_id, started_at_utc, checkpoint_at_utc) VALUES ('duplicate-open', ?1, '2026-10-21T01:00:00Z', '2026-10-21T01:00:00Z')",
+            [&task_id],
+        )
+        .is_err());
+    assert!(db
+        .execute(
+            "INSERT INTO projects (id, name, created_at_utc, updated_at_utc) VALUES ('blank', ' ', '2026-10-21T01:00:00Z', '2026-10-21T01:00:00Z')",
+            [],
+        )
+        .is_err());
+    assert!(db
+        .execute(
+            "UPDATE tasks SET status='invalid' WHERE id=?1",
+            [&task_id],
+        )
+        .is_err());
+    assert!(db
+        .execute(
+            "UPDATE time_entries SET confirmed_ms=-1 WHERE task_id=?1",
+            [&task_id],
+        )
+        .is_err());
+}
+
+#[test]
+fn failed_checkpoint_preserves_monotonic_anchor_for_retry() {
+    let (dir, clock) = fixture();
+    let mut repo = WorkRepository::open(dir.path().join("db"), clock.clone()).unwrap();
+    let project_id = repo.create_project("P").unwrap();
+    let task_id = repo.create_task(&project_id, "T").unwrap();
+    repo.transition(&task_id, "start").unwrap();
+    clock.advance_both_ms(MIN * 5);
+    repo.fail_once_before_commit();
+    assert!(repo.checkpoint().is_err());
+    clock.advance_both_ms(MIN * 2);
+    repo.checkpoint().unwrap();
+    let m = repo.project_metrics(&project_id).unwrap();
+    assert_eq!((m.own_elapsed_ms, m.task_time_ms), (MIN * 7, MIN * 7));
+}
