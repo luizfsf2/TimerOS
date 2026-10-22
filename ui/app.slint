@@ -37,7 +37,7 @@ export component AppWindow inherits Window {
             ComboBox {
                 model: root.project-options;
                 current-index <=> root.selected-project-index;
-                selected(_) => { root.select-project(self.current-index); }
+                selected(value) => { root.select-project(self.current-index); }
             }
         }
         HorizontalBox {
@@ -45,7 +45,7 @@ export component AppWindow inherits Window {
             ComboBox {
                 model: root.task-options;
                 current-index <=> root.selected-task-index;
-                selected(_) => { root.select-task(self.current-index); }
+                selected(value) => { root.select-task(self.current-index); }
             }
         }
         Text { text: root.project-metrics; }
