@@ -32,10 +32,12 @@ $dirty = & git status --porcelain
 if ($LASTEXITCODE -ne 0) { throw "git status falhou." }
 if ($dirty) { throw "Working tree nao esta limpo. Preserve e reconcilie alteracoes antes de rodar." }
 
-$expectedHead = "354a724f85a9e597a5c2549abe5d0ab26e1c0d6b"
+$baseline = "354a724f85a9e597a5c2549abe5d0ab26e1c0d6b"
 $observedHead = (& git rev-parse HEAD).Trim()
-if ($LASTEXITCODE -ne 0 -or $observedHead -ne $expectedHead) {
-    throw "HEAD incorreto: $observedHead. Atualize feature/v1 de forma segura para $expectedHead antes do preflight."
+if ($LASTEXITCODE -ne 0) { throw "git rev-parse falhou." }
+& git merge-base --is-ancestor $baseline HEAD
+if ($LASTEXITCODE -ne 0) {
+    throw "HEAD incorreto: $observedHead. Atualize feature/v1 de forma segura para um descendente de $baseline."
 }
 
 RunChecked "Rust" "rustc" @("--version")
