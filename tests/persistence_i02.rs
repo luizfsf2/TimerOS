@@ -87,7 +87,7 @@ fn malformed_json_is_preserved() {
 fn stale_revision_and_unknown_envelope_rejected() {
     let (dir,_)=fixture();let mut store=JsonStore::open(dir.path()).unwrap();
     assert!(store.commit_config(9,ConfigSnapshot::default(),"2026-10-21T01:00:00Z").is_err());
-    let mut wrong=ConfigSnapshot::default();wrong.schema_version=2;
+    let wrong = ConfigSnapshot { schema_version: 2, ..ConfigSnapshot::default() };
     assert!(store.commit_config(0,wrong,"2026-10-21T01:00:00Z").is_err());
     drop(store);
     std::fs::write(dir.path().join("config.json"),r#"{"schema_version":99}"#).unwrap();

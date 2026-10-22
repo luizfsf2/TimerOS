@@ -126,8 +126,10 @@ impl StateSnapshot {
         for run in &self.countdown_runs {
             let status=run.get("status").and_then(Value::as_str).ok_or_else(||anyhow!("status invalido"))?;
             if !matches!(status,"stopped"|"running"|"paused"|"pending") {bail!("status countdown desconhecido");}
-            if status=="running"||status=="pending" {
-                if run.get("due_at_utc").and_then(Value::as_str).is_none(){bail!("due_at obrigatorio");}
+            if (status == "running" || status == "pending")
+                && run.get("due_at_utc").and_then(Value::as_str).is_none()
+            {
+                bail!("due_at obrigatorio");
             }
             if status=="paused"&&run.get("paused_remaining_ms").and_then(Value::as_u64).is_none(){bail!("paused sem restante");}
             if run.get("definition_snapshot").is_none(){bail!("run sem snapshot");}
