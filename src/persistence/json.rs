@@ -276,6 +276,9 @@ impl JsonStore {
             && !state_exists
             && !data_dir.join("config.json.bak").exists()
             && !data_dir.join("state.json.bak").exists()
+            && !data_dir.join("timeros.db").exists()
+            && !data_dir.join("timeros.db-wal").exists()
+            && !data_dir.join("timeros.db-shm").exists()
         {
             let store = Self {
                 config: ConfigSnapshot::default(),
@@ -327,7 +330,7 @@ impl JsonStore {
         next.validate()?;
         let path = self.data_dir.join("config.json");
         let fail = std::mem::take(&mut self.fail_next_replace);
-        replace_with_backup(&path, &serde_json::to_vec_pretty(&next)?, fail)?;
+        replace_with_backup(&path, &serde_json::to_vec_pretty(&next)?, expected, fail)?;
         self.config = next;
         Ok(())
     }
@@ -347,7 +350,7 @@ impl JsonStore {
         next.validate()?;
         let path = self.data_dir.join("state.json");
         let fail = std::mem::take(&mut self.fail_next_replace);
-        replace_with_backup(&path, &serde_json::to_vec_pretty(&next)?, fail)?;
+        replace_with_backup(&path, &serde_json::to_vec_pretty(&next)?, expected, fail)?;
         self.state = next;
         Ok(())
     }
@@ -426,7 +429,7 @@ fn write_atomically(path: &Path, bytes: &[u8]) -> Result<()> {
     }
     Ok(())
 }
-fn replace_with_backup(path: &Path, bytes: &[u8], fail: bool) -> Result<()> {
+fn replace_with_backup(path: &Path, bytes: &[u8], expected_revision: u64, fail: bool) -> Result<()> {
     // Caller validou o documento oficial em open. Conferir novamente antes de backup.
     let old = fs::read(path).context("JSON oficial ausente; preservar e diagnosticar")?;
     let old_value: Value =
@@ -438,12 +441,19 @@ fn replace_with_backup(path: &Path, bytes: &[u8], fail: bool) -> Result<()> {
     if schema != 1 {
         bail!("schema nao suportado, preservar oficial");
     }
-    if path.file_name().and_then(|s| s.to_str()) == Some("config.json") {
+    // A revisao do disco e a autoridade final, nao apenas o snapshot em memoria.
+    // Impede que duas instancias do JsonStore sobrescrevam commits concorrentes.
+    let disk_revision = if path.file_name().and_then(|s| s.to_str()) == Some("config.json") {
         let old_doc: ConfigSnapshot = serde_json::from_slice(&old)?;
         old_doc.validate()?;
+        old_doc.revision
     } else {
         let old_doc: StateSnapshot = serde_json::from_slice(&old)?;
         old_doc.validate()?;
+        old_doc.revision
+    };
+    if disk_revision != expected_revision {
+        bail!("conflito de revisao no arquivo oficial; preservar versao atual");
     }
     let backup = PathBuf::from(format!("{}.bak", path.display()));
     write_atomically(&backup, &old)?;
