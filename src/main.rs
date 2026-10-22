@@ -122,6 +122,53 @@ fn main() -> Result<()> {
     {
         let state = state.clone();
         let weak = ui.as_weak();
+        ui.on_select_project(move |index| {
+            let outcome = (|| -> Result<()> {
+                let projects = state.borrow().repo.projects()?;
+                let chosen = projects
+                    .get(usize::try_from(index)?)
+                    .ok_or_else(|| anyhow!("projeto selecionado invalido"))?
+                    .id
+                    .clone();
+                let task_id = state
+                    .borrow()
+                    .repo
+                    .tasks(&chosen)?
+                    .first()
+                    .map(|task| task.id.clone());
+                let mut s = state.borrow_mut();
+                s.project_id = Some(chosen);
+                s.task_id = task_id;
+                Ok(())
+            })();
+            show(&weak, &state, outcome);
+        });
+    }
+    {
+        let state = state.clone();
+        let weak = ui.as_weak();
+        ui.on_select_task(move |index| {
+            let outcome = (|| -> Result<()> {
+                let project_id = state
+                    .borrow()
+                    .project_id
+                    .clone()
+                    .ok_or_else(|| anyhow!("selecione projeto primeiro"))?;
+                let tasks = state.borrow().repo.tasks(&project_id)?;
+                let task_id = tasks
+                    .get(usize::try_from(index)?)
+                    .ok_or_else(|| anyhow!("tarefa selecionada invalida"))?
+                    .id
+                    .clone();
+                state.borrow_mut().task_id = Some(task_id);
+                Ok(())
+            })();
+            show(&weak, &state, outcome);
+        });
+    }
+    {
+        let state = state.clone();
+        let weak = ui.as_weak();
         ui.on_refresh(move || {
             if let Some(ui) = weak.upgrade() {
                 refresh(&ui, &state);
@@ -166,6 +213,26 @@ fn act(state: &Rc<RefCell<App>>, operation: &str) -> Result<()> {
 
 fn refresh(ui: &AppWindow, state: &Rc<RefCell<App>>) {
     let s = state.borrow();
+    match s.repo.projects() {
+        Ok(projects) => {
+            let selected = projects
+                .iter()
+                .position(|p| Some(&p.id) == s.project_id.as_ref())
+                .and_then(|i| i32::try_from(i).ok())
+                .unwrap_or(-1);
+            let names: Vec<slint::SharedString> = projects
+                .iter()
+                .map(|p| p.name.as_str().into())
+                .collect();
+            ui.set_project_options(slint::ModelRc::from(Rc::new(
+                slint::VecModel::from(names),
+            )));
+            ui.set_selected_project_index(selected);
+        }
+        Err(e) => {
+            ui.set_status_line(format!("Erro ao carregar projetos: {e}").into());
+        }
+    }
     if let Some(id) = &s.project_id {
         match s.repo.project_metrics(id) {
             Ok(m) => ui.set_project_metrics(
@@ -179,13 +246,38 @@ fn refresh(ui: &AppWindow, state: &Rc<RefCell<App>>) {
             ),
             Err(e) => ui.set_project_metrics(format!("Erro de leitura: {e}").into()),
         }
-        if let Ok(tasks) = s.repo.tasks(id) {
-            if let Some(selected) = tasks.iter().find(|t| Some(&t.id) == s.task_id.as_ref()) {
-                ui.set_task_status(
-                    format!("Tarefa: {} ({})", selected.name, selected.status).into(),
-                );
+        match s.repo.tasks(id) {
+            Ok(tasks) => {
+                let selected = tasks
+                    .iter()
+                    .position(|t| Some(&t.id) == s.task_id.as_ref())
+                    .and_then(|i| i32::try_from(i).ok())
+                    .unwrap_or(-1);
+                let names: Vec<slint::SharedString> = tasks
+                    .iter()
+                    .map(|t| t.name.as_str().into())
+                    .collect();
+                ui.set_task_options(slint::ModelRc::from(Rc::new(
+                    slint::VecModel::from(names),
+                )));
+                ui.set_selected_task_index(selected);
+                if let Some(task) = tasks.get(usize::try_from(selected).unwrap_or(usize::MAX)) {
+                    ui.set_task_status(
+                        format!("Tarefa: {} ({})", task.name, task.status).into(),
+                    );
+                } else {
+                    ui.set_task_status("Sem tarefa selecionada".into());
+                }
             }
+            Err(e) => ui.set_status_line(format!("Erro ao carregar tarefas: {e}").into()),
         }
+    } else {
+        ui.set_project_metrics("Sem projeto selecionado".into());
+        ui.set_task_options(slint::ModelRc::from(Rc::new(
+            slint::VecModel::from(Vec::<slint::SharedString>::new()),
+        )));
+        ui.set_selected_task_index(-1);
+        ui.set_task_status("Sem tarefa selecionada".into());
     }
 }
 

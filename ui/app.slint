@@ -1,13 +1,19 @@
-import { Button, LineEdit, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { Button, ComboBox, LineEdit, VerticalBox, HorizontalBox } from "std-widgets.slint";
 export component AppWindow inherits Window {
     title: "TimerOS - fluxo inicial I02";
     width: 580px;
-    height: 420px;
+    height: 510px;
     in-out property <string> project-name: "";
     in-out property <string> task-name: "";
     in property <string> status-line: "Pronto";
     in property <string> project-metrics: "Sem projeto selecionado";
     in property <string> task-status: "Sem tarefa selecionada";
+    in property <[string]> project-options: [];
+    in property <[string]> task-options: [];
+    in-out property <int> selected-project-index: -1;
+    in-out property <int> selected-task-index: -1;
+    callback select-project(int);
+    callback select-task(int);
     callback create-project(string);
     callback create-task(string);
     callback start-task();
@@ -25,6 +31,22 @@ export component AppWindow inherits Window {
         HorizontalBox {
             LineEdit { text <=> root.task-name; placeholder-text: "Nome da tarefa"; }
             Button { text: "Criar tarefa"; clicked => { root.create-task(root.task-name); } }
+        }
+        HorizontalBox {
+            Text { text: "Projeto:"; vertical-alignment: center; }
+            ComboBox {
+                model: root.project-options;
+                current-index <=> root.selected-project-index;
+                selected(_) => { root.select-project(self.current-index); }
+            }
+        }
+        HorizontalBox {
+            Text { text: "Tarefa:"; vertical-alignment: center; }
+            ComboBox {
+                model: root.task-options;
+                current-index <=> root.selected-task-index;
+                selected(_) => { root.select-task(self.current-index); }
+            }
         }
         Text { text: root.project-metrics; }
         Text { text: root.task-status; }
