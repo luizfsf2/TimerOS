@@ -4,6 +4,17 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot ".."))
 
+# O Rust instalado via rustup pode nao estar no PATH do PowerShell atual.
+if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+    $rustupBin = Join-Path $HOME ".cargo\\bin"
+    if (Test-Path (Join-Path $rustupBin "cargo.exe")) {
+        $env:PATH = "$rustupBin;$env:PATH"
+    }
+}
+if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+    throw "Cargo indisponivel. Instale o rustup oficial ou ajuste PATH; nao continue."
+}
+
 function RunChecked([string]$Label, [string]$Program, [string[]]$Arguments) {
     Write-Host ""
     Write-Host "==> $Label"
@@ -20,6 +31,12 @@ if ($LASTEXITCODE -ne 0 -or $branch -ne "feature/v1") {
 $dirty = & git status --porcelain
 if ($LASTEXITCODE -ne 0) { throw "git status falhou." }
 if ($dirty) { throw "Working tree nao esta limpo. Preserve e reconcilie alteracoes antes de rodar." }
+
+$expectedHead = "354a724f85a9e597a5c2549abe5d0ab26e1c0d6b"
+$observedHead = (& git rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $observedHead -ne $expectedHead) {
+    throw "HEAD incorreto: $observedHead. Atualize feature/v1 de forma segura para $expectedHead antes do preflight."
+}
 
 RunChecked "Rust" "rustc" @("--version")
 RunChecked "Cargo" "cargo" @("--version")
