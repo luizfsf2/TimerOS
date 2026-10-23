@@ -429,7 +429,12 @@ fn write_atomically(path: &Path, bytes: &[u8]) -> Result<()> {
     }
     Ok(())
 }
-fn replace_with_backup(path: &Path, bytes: &[u8], expected_revision: u64, fail: bool) -> Result<()> {
+fn replace_with_backup(
+    path: &Path,
+    bytes: &[u8],
+    expected_revision: u64,
+    fail: bool,
+) -> Result<()> {
     // Caller validou o documento oficial em open. Conferir novamente antes de backup.
     let old = fs::read(path).context("JSON oficial ausente; preservar e diagnosticar")?;
     let old_value: Value =

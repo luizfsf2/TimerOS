@@ -196,7 +196,10 @@ fn json_stale_writer_cannot_overwrite_disk_revision() {
     assert!(stale
         .commit_config(0, stale.config.clone(), "2026-10-21T01:10:00Z")
         .is_err());
-    assert_eq!(std::fs::read(dir.path().join("config.json")).unwrap(), durable);
+    assert_eq!(
+        std::fs::read(dir.path().join("config.json")).unwrap(),
+        durable
+    );
     assert_eq!(stale.config.revision, 0);
 }
 
@@ -222,10 +225,7 @@ fn sqlite_open_entry_uniqueness_and_checks_are_enforced() {
         )
         .is_err());
     assert!(db
-        .execute(
-            "UPDATE tasks SET status='invalid' WHERE id=?1",
-            [&task_id],
-        )
+        .execute("UPDATE tasks SET status='invalid' WHERE id=?1", [&task_id],)
         .is_err());
     assert!(db
         .execute(
