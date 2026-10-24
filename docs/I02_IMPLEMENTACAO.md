@@ -67,7 +67,7 @@ versionar lockfile estimado/fabricado nem declarar sucesso sem logs reais.
 Com `cargo run --locked --features desktop --bin timeros` em um diretorio de
 dados descartavel, comprovar:
 1. Criar dois projetos e pelo menos duas tarefas;
-2. Alternar selecao de projeto/tarefa pela ComboBox e acionar iniciar, pausar,
+2. Alternar selecao de projeto/tarefa pelos botoes anterior/proximo e acionar iniciar, pausar,
    retomar; comprovar UI POS-COMMIT;
 3. Deixar duas tarefas em paralelo e verificar tempo proprio contra soma;
 4. Fechar a janela normalmente, reabrir o executavel em outro CWD e conferir
@@ -81,3 +81,45 @@ dados descartavel, comprovar:
 A rodada QA posterior e independente. I02 permanece aberta ate lockfile
 versionado, validações Rust/Windows e resultados positivos. Nenhum helper H2
 deve ser usado na rodada H3.
+
+## Regressao visual/interativa informada pelo operador (2026-10-23)
+
+O operador tentou criar um projeto e duas tarefas no aplicativo Windows do HEAD
+`8dac3aaf72e5fe28bb94206f9a767f555af65cfe` e observou congelamentos,
+controles desaparecendo e impossibilidade de iniciar atividades. **Falha real de
+aceite interativo I02**: resultado QA 002 com 34/34 testes PASS nao a cobre;
+`REPORT.md` da rodada marcou a GUI interativa e checkpoint real como NOT RUN.
+
+Investigacao no codigo: `refresh()` reinstalava os modelos `VecModel`
+inteiros de projetos e tarefas a cada atualizacao e reassinalava propriedades
+`current-index <=>` com vinculo bidirecional aos `ComboBox`. Esta e uma
+fonte plausivel de realimentacao/reentrada e instabilidade de layout no Slint;
+nao afirmar causa comprovada por trace ate reproduzir no Windows.
+
+Correcao I02 em `757330aeeffd0c6e26bb6aeb1c233bc895d4bfe3`:
+- Substituir ComboBox/modelos dinamicos por navegacao explicita de
+  projeto/tarefa Anterior/Proximo no fluxo minimo, mantendo selecao por id no
+  repositório Rust; HUD e seletores definitivos pertencem I05.
+- `refresh()` faz apenas leitura do repositório e publica texto/metrica, sem
+  recriar modelos nem invocar acoes de selecao.
+- Rotulos com `overflow: elide`, tamanhos e alinhamento previsiveis para
+  impedir que nomes/mensagens comprimam controles.
+- Teste focal `navigation_is_circular_and_has_no_side_effects`
+  adicionado ao target desktop (ainda nao executado).
+
+### Aceite de regressao obrigatorio
+
+Atualizar checkout com fast-forward seguro, usar `cargo fmt --all`,
+`cargo test --locked --all-targets --features desktop`,
+`cargo clippy --locked --all-targets --features desktop -- -D warnings`,
+`cargo build --locked --features desktop --bin timeros` em desenvolvimento.
+Executar binario **novo** em pasta portatil descartavel, nao usar EXE copiado
+da revisao anterior nem dados reais. Verificar com 1/2/muitos projetos/tarefas,
+incluindo rotulos longos: nada some, nao trava, botoes respondem e selecao
+fica correta apos criar/trocar/refresh/60s. Testar iniciar, pausar, retomar,
+duas tarefas simultaneas, fechamento/reabertura e duracoes no banco.
+Se travar, capturar stderr/panic do novo EXE sem sujar o perfil do usuario.
+
+**Status: I02 reprovada no aceite GUI da rodada 002; correcao publicada,
+aguardando verificacao Rust e Windows na revisao nova. Nao rodar QA FORMAL
+ate a interface estar utilizavel em teste de desenvolvimento.**
