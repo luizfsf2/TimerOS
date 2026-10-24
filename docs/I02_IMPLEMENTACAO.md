@@ -123,3 +123,26 @@ Se travar, capturar stderr/panic do novo EXE sem sujar o perfil do usuario.
 **Status: I02 reprovada no aceite GUI da rodada 002; correcao publicada,
 aguardando verificacao Rust e Windows na revisao nova. Nao rodar QA FORMAL
 ate a interface estar utilizavel em teste de desenvolvimento.**
+
+### Falha de comando no build antigo e nova correcao (2026-10-23)
+
+A captura enviada pelo operador mostra titulo de janela "TimerOS - fluxo inicial
+I02" (layout antigo), tarefa no estado `paused` e erro
+`Sem confirmacao: transicao invalida: start em paused`.
+Esse erro reflete o contrato real: tarefas `paused` aceitam `resume`,
+nao `start`. Nao mudar a maquina de estados para mascarar a falha da UI.
+
+Commit `8cafcb257ce9c5a56df1cba2ac6f3dfde6e52775`:
+- propriedades `can-start`, `can-pause`, `can-resume` no layout;
+- botoes so habilitados em estados `stopped`, `running`, `paused`
+  respectivamente; sem tarefa/completada desabilita os tres;
+- `refresh()` carrega estado confirmado para esses controles;
+- mensagens orientadas ao estado e teste focal `task_controls_follow_persisted_status`.
+
+O operador informou que o build posterior a troca de ComboBox por navegacao
+Anterior/Proximo nao funcionou. A pasta remota de relatorios consultada nesta
+sessao continua expondo apenas QA-H3-implementacao-timeros-v1-002 do HEAD
+`8dac3aaf72e5fe28bb94206f9a767f555af65cfe`, sem diagnostico da nova
+compilacao. Nao supor a causa nem atribuir PASS ao codigo apos esse HEAD.
+Deve-se coletar saida completa do novo `cargo build --locked --features desktop
+--bin timeros` (e `cargo fmt --all -- --check`) antes de qualquer fechamento.
