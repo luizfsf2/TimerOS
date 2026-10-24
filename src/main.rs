@@ -249,7 +249,22 @@ fn select_task(state: &Rc<RefCell<App>>, backwards: bool) -> Result<()> {
     Ok(())
 }
 
+/// A UI so oferece transicoes que o repositorio aceita para o estado selecionado.
+/// Persistencia valida a transicao novamente dentro de uma transacao.
+fn allowed_actions(status: Option<&str>) -> (bool, bool, bool) {
+    match status {
+        Some("stopped") => (true, false, false),
+        Some("running") => (false, true, false),
+        Some("paused") => (false, false, true),
+        _ => (false, false, false),
+    }
+}
+
 fn refresh(ui: &AppWindow, state: &Rc<RefCell<App>>) {
+    // Estado sem selecao: nenhum botao pode iniciar uma operacao invalida.
+    ui.set_can_start(false);
+    ui.set_can_pause(false);
+    ui.set_can_resume(false);
     // Leitura apenas: nao recriar modelos/indices ligados aos controles da UI.
     let current = state.borrow();
     match current.repo.projects() {
@@ -277,8 +292,19 @@ fn refresh(ui: &AppWindow, state: &Rc<RefCell<App>>) {
                     .map(|index| format!("Tarefa {}/{}: {}", index + 1, tasks.len(), tasks[index].name))
                     .unwrap_or_else(|| "Nenhuma tarefa selecionada".to_string());
                 ui.set_selected_task_label(label.into());
-                let status = selected
-                    .map(|index| format!("Estado: {}", tasks[index].status))
+                let selected_status = selected.map(|index| tasks[index].status.as_str());
+                let (can_start, can_pause, can_resume) = allowed_actions(selected_status);
+                ui.set_can_start(can_start);
+                ui.set_can_pause(can_pause);
+                ui.set_can_resume(can_resume);
+                let status = selected_status
+                    .map(|status| match status {
+                        "paused" => "Pausada — use Retomar".to_string(),
+                        "running" => "Em execução — use Pausar".to_string(),
+                        "stopped" => "Parada — use Iniciar".to_string(),
+                        "completed" => "Concluída".to_string(),
+                        other => format!("Estado: {other}"),
+                    })
                     .unwrap_or_else(|| "Sem tarefa selecionada".to_string());
                 ui.set_task_status(status.into());
             }
@@ -313,7 +339,16 @@ fn show(weak: &slint::Weak<AppWindow>, state: &Rc<RefCell<App>>, outcome: Result
 
 #[cfg(all(test, windows))]
 mod tests {
-    use super::{acquire_instance_guard, adjacent_index};
+    use super::{acquire_instance_guard, adjacent_index, allowed_actions};
+
+    #[test]
+    fn task_controls_follow_persisted_status() {
+        assert_eq!(allowed_actions(None), (false, false, false));
+        assert_eq!(allowed_actions(Some("stopped")), (true, false, false));
+        assert_eq!(allowed_actions(Some("running")), (false, true, false));
+        assert_eq!(allowed_actions(Some("paused")), (false, false, true));
+        assert_eq!(allowed_actions(Some("completed")), (false, false, false));
+    }
 
     #[test]
     fn navigation_is_circular_and_has_no_side_effects() {
