@@ -1,61 +1,77 @@
-import { Button, ComboBox, LineEdit, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { Button, LineEdit, VerticalBox, HorizontalBox } from "std-widgets.slint";
+
 export component AppWindow inherits Window {
-    title: "TimerOS - fluxo inicial I02";
-    width: 580px;
-    height: 510px;
+    title: "TimerOS - trabalho (I02)";
+    width: 720px;
+    height: 540px;
+    min-width: 600px;
+    min-height: 510px;
+
     in-out property <string> project-name: "";
     in-out property <string> task-name: "";
     in property <string> status-line: "Pronto";
     in property <string> project-metrics: "Sem projeto selecionado";
     in property <string> task-status: "Sem tarefa selecionada";
-    in property <[string]> project-options: [];
-    in property <[string]> task-options: [];
-    in-out property <int> selected-project-index: -1;
-    in-out property <int> selected-task-index: -1;
-    callback select-project(int);
-    callback select-task(int);
+    in property <string> selected-project-label: "Nenhum projeto";
+    in property <string> selected-task-label: "Nenhuma tarefa";
+
     callback create-project(string);
     callback create-task(string);
+    callback previous-project();
+    callback next-project();
+    callback previous-task();
+    callback next-task();
     callback start-task();
     callback pause-task();
     callback resume-task();
     callback refresh();
+
     VerticalBox {
         padding: 18px;
-        spacing: 12px;
-        Text { text: "TimerOS - projeto e tarefa"; font-size: 22px; }
+        spacing: 10px;
+        alignment: start;
+        Text { text: "TimerOS - projeto e tarefa"; font-size: 22px; height: 35px; }
+
         HorizontalBox {
+            height: 42px;
+            spacing: 8px;
             LineEdit { text <=> root.project-name; placeholder-text: "Nome do projeto"; }
-            Button { text: "Criar projeto"; clicked => { root.create-project(root.project-name); } }
+            Button { text: "Criar projeto"; width: 140px; clicked => { root.create-project(root.project-name); } }
         }
         HorizontalBox {
+            height: 42px;
+            spacing: 8px;
             LineEdit { text <=> root.task-name; placeholder-text: "Nome da tarefa"; }
-            Button { text: "Criar tarefa"; clicked => { root.create-task(root.task-name); } }
+            Button { text: "Criar tarefa"; width: 140px; clicked => { root.create-task(root.task-name); } }
+        }
+
+        HorizontalBox {
+            height: 42px;
+            spacing: 8px;
+            Button { text: "Projeto anterior"; width: 135px; clicked => { root.previous-project(); } }
+            Text { text: root.selected-project-label; overflow: elide; vertical-alignment: center; }
+            Button { text: "Próximo projeto"; width: 135px; clicked => { root.next-project(); } }
         }
         HorizontalBox {
-            Text { text: "Projeto:"; vertical-alignment: center; }
-            ComboBox {
-                model: root.project-options;
-                current-index <=> root.selected-project-index;
-                selected(value) => { root.select-project(self.current-index); }
-            }
+            height: 42px;
+            spacing: 8px;
+            Button { text: "Tarefa anterior"; width: 135px; clicked => { root.previous-task(); } }
+            Text { text: root.selected-task-label; overflow: elide; vertical-alignment: center; }
+            Button { text: "Próxima tarefa"; width: 135px; clicked => { root.next-task(); } }
         }
+
+        Text { text: root.project-metrics; height: 28px; overflow: elide; vertical-alignment: center; }
+        Text { text: root.task-status; height: 28px; overflow: elide; vertical-alignment: center; }
+
         HorizontalBox {
-            Text { text: "Tarefa:"; vertical-alignment: center; }
-            ComboBox {
-                model: root.task-options;
-                current-index <=> root.selected-task-index;
-                selected(value) => { root.select-task(self.current-index); }
-            }
-        }
-        Text { text: root.project-metrics; }
-        Text { text: root.task-status; }
-        HorizontalBox {
+            height: 42px;
+            spacing: 8px;
             Button { text: "Iniciar"; clicked => { root.start-task(); } }
             Button { text: "Pausar"; clicked => { root.pause-task(); } }
             Button { text: "Retomar"; clicked => { root.resume-task(); } }
             Button { text: "Atualizar"; clicked => { root.refresh(); } }
         }
-        Text { text: root.status-line; wrap: word-wrap; }
+
+        Text { text: root.status-line; height: 54px; wrap: word-wrap; overflow: elide; }
     }
 }

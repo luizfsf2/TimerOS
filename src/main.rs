@@ -125,51 +125,38 @@ fn main() -> Result<()> {
             show(&weak, &state, outcome);
         });
     }
+    // Navegação explícita: nenhuma selecao emula escrita no modelo da UI.
+    // Isso evita reentrancia e realimentacao dos ComboBoxes dinamicos.
     {
         let state = state.clone();
         let weak = ui.as_weak();
-        ui.on_select_project(move |index| {
-            let outcome = (|| -> Result<()> {
-                let projects = state.borrow().repo.projects()?;
-                let chosen = projects
-                    .get(usize::try_from(index)?)
-                    .ok_or_else(|| anyhow!("projeto selecionado invalido"))?
-                    .id
-                    .clone();
-                let task_id = state
-                    .borrow()
-                    .repo
-                    .tasks(&chosen)?
-                    .first()
-                    .map(|task| task.id.clone());
-                let mut s = state.borrow_mut();
-                s.project_id = Some(chosen);
-                s.task_id = task_id;
-                Ok(())
-            })();
-            show(&weak, &state, outcome);
+        ui.on_previous_project(move || {
+            let result = select_project(&state, true);
+            show_selection(&weak, &state, result);
         });
     }
     {
         let state = state.clone();
         let weak = ui.as_weak();
-        ui.on_select_task(move |index| {
-            let outcome = (|| -> Result<()> {
-                let project_id = state
-                    .borrow()
-                    .project_id
-                    .clone()
-                    .ok_or_else(|| anyhow!("selecione projeto primeiro"))?;
-                let tasks = state.borrow().repo.tasks(&project_id)?;
-                let task_id = tasks
-                    .get(usize::try_from(index)?)
-                    .ok_or_else(|| anyhow!("tarefa selecionada invalida"))?
-                    .id
-                    .clone();
-                state.borrow_mut().task_id = Some(task_id);
-                Ok(())
-            })();
-            show(&weak, &state, outcome);
+        ui.on_next_project(move || {
+            let result = select_project(&state, false);
+            show_selection(&weak, &state, result);
+        });
+    }
+    {
+        let state = state.clone();
+        let weak = ui.as_weak();
+        ui.on_previous_task(move || {
+            let result = select_task(&state, true);
+            show_selection(&weak, &state, result);
+        });
+    }
+    {
+        let state = state.clone();
+        let weak = ui.as_weak();
+        ui.on_next_task(move || {
+            let result = select_task(&state, false);
+            show_selection(&weak, &state, result);
         });
     }
     {
@@ -217,64 +204,100 @@ fn act(state: &Rc<RefCell<App>>, operation: &str) -> Result<()> {
     state.borrow_mut().repo.transition(&id, operation)
 }
 
-fn refresh(ui: &AppWindow, state: &Rc<RefCell<App>>) {
-    let s = state.borrow();
-    match s.repo.projects() {
-        Ok(projects) => {
-            let selected = projects
-                .iter()
-                .position(|p| Some(&p.id) == s.project_id.as_ref())
-                .and_then(|i| i32::try_from(i).ok())
-                .unwrap_or(-1);
-            let names: Vec<slint::SharedString> =
-                projects.iter().map(|p| p.name.as_str().into()).collect();
-            ui.set_project_options(slint::ModelRc::from(Rc::new(slint::VecModel::from(names))));
-            ui.set_selected_project_index(selected);
-        }
-        Err(e) => {
-            ui.set_status_line(format!("Erro ao carregar projetos: {e}").into());
-        }
+/// Seleciona uma entrada adjacente, com retorno circular e fallback previsivel.
+fn adjacent_index(len: usize, current: Option<usize>, backwards: bool) -> Option<usize> {
+    if len == 0 {
+        return None;
     }
-    if let Some(id) = &s.project_id {
-        match s.repo.project_metrics(id) {
-            Ok(m) => ui.set_project_metrics(
-                format!(
-                    "Projeto: tempo proprio {} min | soma das tarefas {} min | ativas {}",
-                    m.own_elapsed_ms / 60_000,
-                    m.task_time_ms / 60_000,
-                    m.running_task_count
-                )
-                .into(),
-            ),
-            Err(e) => ui.set_project_metrics(format!("Erro de leitura: {e}").into()),
+    match current {
+        Some(index) if index < len => {
+            Some(if backwards { (index + len - 1) % len } else { (index + 1) % len })
         }
-        match s.repo.tasks(id) {
+        _ => Some(if backwards { len - 1 } else { 0 }),
+    }
+}
+
+fn select_project(state: &Rc<RefCell<App>>, backwards: bool) -> Result<()> {
+    let (project_id, task_id) = {
+        let current = state.borrow();
+        let projects = current.repo.projects()?;
+        let position = projects.iter().position(|p| Some(&p.id) == current.project_id.as_ref());
+        let index = adjacent_index(projects.len(), position, backwards)
+            .ok_or_else(|| anyhow!("crie um projeto primeiro"))?;
+        let project_id = projects[index].id.clone();
+        let task_id = current.repo.tasks(&project_id)?.first().map(|t| t.id.clone());
+        (project_id, task_id)
+    };
+    let mut current = state.borrow_mut();
+    current.project_id = Some(project_id);
+    current.task_id = task_id;
+    Ok(())
+}
+
+fn select_task(state: &Rc<RefCell<App>>, backwards: bool) -> Result<()> {
+    let task_id = {
+        let current = state.borrow();
+        let project_id = current.project_id.as_ref()
+            .ok_or_else(|| anyhow!("selecione um projeto primeiro"))?;
+        let tasks = current.repo.tasks(project_id)?;
+        let position = tasks.iter().position(|t| Some(&t.id) == current.task_id.as_ref());
+        let index = adjacent_index(tasks.len(), position, backwards)
+            .ok_or_else(|| anyhow!("crie uma tarefa primeiro"))?;
+        tasks[index].id.clone()
+    };
+    state.borrow_mut().task_id = Some(task_id);
+    Ok(())
+}
+
+fn refresh(ui: &AppWindow, state: &Rc<RefCell<App>>) {
+    // Leitura apenas: nao recriar modelos/indices ligados aos controles da UI.
+    let current = state.borrow();
+    match current.repo.projects() {
+        Ok(projects) => {
+            let selected = projects.iter().position(|p| Some(&p.id) == current.project_id.as_ref());
+            let label = selected
+                .map(|index| format!("Projeto {}/{}: {}", index + 1, projects.len(), projects[index].name))
+                .unwrap_or_else(|| "Nenhum projeto selecionado".to_string());
+            ui.set_selected_project_label(label.into());
+        }
+        Err(e) => ui.set_status_line(format!("Erro ao carregar projetos: {e}").into()),
+    }
+    if let Some(project_id) = &current.project_id {
+        match current.repo.project_metrics(project_id) {
+            Ok(m) => ui.set_project_metrics(format!(
+                "Tempo próprio: {} min | soma das tarefas: {} min | ativas: {}",
+                m.own_elapsed_ms / 60_000, m.task_time_ms / 60_000, m.running_task_count
+            ).into()),
+            Err(e) => ui.set_project_metrics(format!("Erro ao ler métricas: {e}").into()),
+        }
+        match current.repo.tasks(project_id) {
             Ok(tasks) => {
-                let selected = tasks
-                    .iter()
-                    .position(|t| Some(&t.id) == s.task_id.as_ref())
-                    .and_then(|i| i32::try_from(i).ok())
-                    .unwrap_or(-1);
-                let names: Vec<slint::SharedString> =
-                    tasks.iter().map(|t| t.name.as_str().into()).collect();
-                ui.set_task_options(slint::ModelRc::from(Rc::new(slint::VecModel::from(names))));
-                ui.set_selected_task_index(selected);
-                if let Some(task) = tasks.get(usize::try_from(selected).unwrap_or(usize::MAX)) {
-                    ui.set_task_status(format!("Tarefa: {} ({})", task.name, task.status).into());
-                } else {
-                    ui.set_task_status("Sem tarefa selecionada".into());
-                }
+                let selected = tasks.iter().position(|t| Some(&t.id) == current.task_id.as_ref());
+                let label = selected
+                    .map(|index| format!("Tarefa {}/{}: {}", index + 1, tasks.len(), tasks[index].name))
+                    .unwrap_or_else(|| "Nenhuma tarefa selecionada".to_string());
+                ui.set_selected_task_label(label.into());
+                let status = selected
+                    .map(|index| format!("Estado: {}", tasks[index].status))
+                    .unwrap_or_else(|| "Sem tarefa selecionada".to_string());
+                ui.set_task_status(status.into());
             }
             Err(e) => ui.set_status_line(format!("Erro ao carregar tarefas: {e}").into()),
         }
     } else {
         ui.set_project_metrics("Sem projeto selecionado".into());
-        ui.set_task_options(slint::ModelRc::from(Rc::new(slint::VecModel::from(Vec::<
-            slint::SharedString,
-        >::new(
-        )))));
-        ui.set_selected_task_index(-1);
+        ui.set_selected_task_label("Nenhuma tarefa selecionada".into());
         ui.set_task_status("Sem tarefa selecionada".into());
+    }
+}
+
+fn show_selection(weak: &slint::Weak<AppWindow>, state: &Rc<RefCell<App>>, outcome: Result<()>) {
+    if let Some(ui) = weak.upgrade() {
+        ui.set_status_line(match outcome {
+            Ok(()) => "Seleção alterada".into(),
+            Err(e) => format!("Seleção não alterada: {e}").into(),
+        });
+        refresh(&ui, state);
     }
 }
 
@@ -290,7 +313,17 @@ fn show(weak: &slint::Weak<AppWindow>, state: &Rc<RefCell<App>>, outcome: Result
 
 #[cfg(all(test, windows))]
 mod tests {
-    use super::acquire_instance_guard;
+    use super::{acquire_instance_guard, adjacent_index};
+
+    #[test]
+    fn navigation_is_circular_and_has_no_side_effects() {
+        assert_eq!(adjacent_index(0, None, false), None);
+        assert_eq!(adjacent_index(2, Some(0), true), Some(1));
+        assert_eq!(adjacent_index(2, Some(1), false), Some(0));
+        assert_eq!(adjacent_index(2, None, false), Some(0));
+        assert_eq!(adjacent_index(2, None, true), Some(1));
+        assert_eq!(adjacent_index(2, Some(99), false), Some(0));
+    }
 
     #[test]
     fn same_portable_data_dir_rejects_second_instance() {
