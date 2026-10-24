@@ -210,9 +210,11 @@ fn adjacent_index(len: usize, current: Option<usize>, backwards: bool) -> Option
         return None;
     }
     match current {
-        Some(index) if index < len => {
-            Some(if backwards { (index + len - 1) % len } else { (index + 1) % len })
-        }
+        Some(index) if index < len => Some(if backwards {
+            (index + len - 1) % len
+        } else {
+            (index + 1) % len
+        }),
         _ => Some(if backwards { len - 1 } else { 0 }),
     }
 }
@@ -221,11 +223,17 @@ fn select_project(state: &Rc<RefCell<App>>, backwards: bool) -> Result<()> {
     let (project_id, task_id) = {
         let current = state.borrow();
         let projects = current.repo.projects()?;
-        let position = projects.iter().position(|p| Some(&p.id) == current.project_id.as_ref());
+        let position = projects
+            .iter()
+            .position(|p| Some(&p.id) == current.project_id.as_ref());
         let index = adjacent_index(projects.len(), position, backwards)
             .ok_or_else(|| anyhow!("crie um projeto primeiro"))?;
         let project_id = projects[index].id.clone();
-        let task_id = current.repo.tasks(&project_id)?.first().map(|t| t.id.clone());
+        let task_id = current
+            .repo
+            .tasks(&project_id)?
+            .first()
+            .map(|t| t.id.clone());
         (project_id, task_id)
     };
     let mut current = state.borrow_mut();
@@ -237,10 +245,14 @@ fn select_project(state: &Rc<RefCell<App>>, backwards: bool) -> Result<()> {
 fn select_task(state: &Rc<RefCell<App>>, backwards: bool) -> Result<()> {
     let task_id = {
         let current = state.borrow();
-        let project_id = current.project_id.as_ref()
+        let project_id = current
+            .project_id
+            .as_ref()
             .ok_or_else(|| anyhow!("selecione um projeto primeiro"))?;
         let tasks = current.repo.tasks(project_id)?;
-        let position = tasks.iter().position(|t| Some(&t.id) == current.task_id.as_ref());
+        let position = tasks
+            .iter()
+            .position(|t| Some(&t.id) == current.task_id.as_ref());
         let index = adjacent_index(tasks.len(), position, backwards)
             .ok_or_else(|| anyhow!("crie uma tarefa primeiro"))?;
         tasks[index].id.clone()
@@ -269,9 +281,18 @@ fn refresh(ui: &AppWindow, state: &Rc<RefCell<App>>) {
     let current = state.borrow();
     match current.repo.projects() {
         Ok(projects) => {
-            let selected = projects.iter().position(|p| Some(&p.id) == current.project_id.as_ref());
+            let selected = projects
+                .iter()
+                .position(|p| Some(&p.id) == current.project_id.as_ref());
             let label = selected
-                .map(|index| format!("Projeto {}/{}: {}", index + 1, projects.len(), projects[index].name))
+                .map(|index| {
+                    format!(
+                        "Projeto {}/{}: {}",
+                        index + 1,
+                        projects.len(),
+                        projects[index].name
+                    )
+                })
                 .unwrap_or_else(|| "Nenhum projeto selecionado".to_string());
             ui.set_selected_project_label(label.into());
         }
@@ -279,17 +300,31 @@ fn refresh(ui: &AppWindow, state: &Rc<RefCell<App>>) {
     }
     if let Some(project_id) = &current.project_id {
         match current.repo.project_metrics(project_id) {
-            Ok(m) => ui.set_project_metrics(format!(
-                "Tempo próprio: {} min | soma das tarefas: {} min | ativas: {}",
-                m.own_elapsed_ms / 60_000, m.task_time_ms / 60_000, m.running_task_count
-            ).into()),
+            Ok(m) => ui.set_project_metrics(
+                format!(
+                    "Tempo próprio: {} min | soma das tarefas: {} min | ativas: {}",
+                    m.own_elapsed_ms / 60_000,
+                    m.task_time_ms / 60_000,
+                    m.running_task_count
+                )
+                .into(),
+            ),
             Err(e) => ui.set_project_metrics(format!("Erro ao ler métricas: {e}").into()),
         }
         match current.repo.tasks(project_id) {
             Ok(tasks) => {
-                let selected = tasks.iter().position(|t| Some(&t.id) == current.task_id.as_ref());
+                let selected = tasks
+                    .iter()
+                    .position(|t| Some(&t.id) == current.task_id.as_ref());
                 let label = selected
-                    .map(|index| format!("Tarefa {}/{}: {}", index + 1, tasks.len(), tasks[index].name))
+                    .map(|index| {
+                        format!(
+                            "Tarefa {}/{}: {}",
+                            index + 1,
+                            tasks.len(),
+                            tasks[index].name
+                        )
+                    })
                     .unwrap_or_else(|| "Nenhuma tarefa selecionada".to_string());
                 ui.set_selected_task_label(label.into());
                 let selected_status = selected.map(|index| tasks[index].status.as_str());
