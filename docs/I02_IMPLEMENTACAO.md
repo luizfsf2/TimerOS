@@ -146,3 +146,22 @@ sessao continua expondo apenas QA-H3-implementacao-timeros-v1-002 do HEAD
 compilacao. Nao supor a causa nem atribuir PASS ao codigo apos esse HEAD.
 Deve-se coletar saida completa do novo `cargo build --locked --features desktop
 --bin timeros` (e `cargo fmt --all -- --check`) antes de qualquer fechamento.
+
+## Relato Cargo Windows recebido em 2026-10-23
+
+A verificacao de desenvolvimento em Windows 11 de `d6724f3bec928eb2645f93cbdf0825c782b378ad` (nao foi execucao QA via launcher H3) comprovou:
+
+- `cargo build --locked --features desktop --bin timeros`: FAIL exit 101;
+- `cargo test --locked --all-targets --features desktop`: FAIL exit 101 antes dos testes;
+- `cargo clippy --locked --all-targets --features desktop -- -D warnings`: FAIL exit 101 antes da analise;
+- `cargo fmt --all -- --check`: FAIL exit 1;
+- Erros de `ui/app.slint`: nao e permitido usar `width` e `min-width` em conjunto, nem `height` e `min-height` no mesmo `Window`.
+- `src/main.rs`: sete hunks de formatação divergentes.
+
+Correcao publicada em `c717a118e0bbada3348a53bd672043e08a1e5030`:
+- removidos `min-width` e `min-height`; `width` e `height` permanecem fixos no layout inicial;
+- aplicados os sete hunks de `rustfmt` recuperados do log real, sem alterar regras funcionais.
+
+A captura do executavel antigo demonstra tarefa `paused` e acionamento equivocado de `start` (validamente recusado pelo dominio). O commit anterior `8cafcb2` ja havia adicionado enablement por estado, mas ainda nao foi compilado nesta linha com o Slint corrigido.
+
+**Estado do aceite:** o QA-H3-implementacao-timeros-v1-002 do HEAD `8dac3aa` nao cobriu GUI interativa; a revisao `c717a118` carece de nova verificacao Windows de build/fmt/tests/Clippy e de teste real do fluxo. Nao emitir pacote QA formal antes de demonstrar que o build atual funciona e que a interface nao some/trava em uso. Nao reutilizar binario nem dados do teste antigo.
