@@ -189,6 +189,23 @@ fn main() -> Result<()> {
         );
     }
 
+    // UI e persistencia sao independentes: um redraw por segundo nao grava no SQLite.
+    // project_metrics utiliza a base monotônica ja mantida pelo repositorio.
+    let display_timer = slint::Timer::default();
+    {
+        let state = state.clone();
+        let weak = ui.as_weak();
+        display_timer.start(
+            slint::TimerMode::Repeated,
+            Duration::from_secs(1),
+            move || {
+                if let Some(ui) = weak.upgrade() {
+                    refresh(&ui, &state);
+                }
+            },
+        );
+    }
+
     ui.run()?;
     // O prototipo encerra o processo ao fechar a janela; tray e responsabilidade I05.
     state.borrow_mut().repo.close_safely()?;
@@ -272,6 +289,15 @@ fn allowed_actions(status: Option<&str>) -> (bool, bool, bool) {
     }
 }
 
+/// Hora, minuto e segundo apenas para exibicao; nao arredonda a fonte de verdade.
+fn format_elapsed_ms(duration_ms: u64) -> String {
+    let total_seconds = duration_ms / 1_000;
+    let hours = total_seconds / 3_600;
+    let minutes = (total_seconds / 60) % 60;
+    let seconds = total_seconds % 60;
+    format!("{hours:02}:{minutes:02}:{seconds:02}")
+}
+
 fn refresh(ui: &AppWindow, state: &Rc<RefCell<App>>) {
     // Estado sem selecao: nenhum botao pode iniciar uma operacao invalida.
     ui.set_can_start(false);
@@ -302,9 +328,9 @@ fn refresh(ui: &AppWindow, state: &Rc<RefCell<App>>) {
         match current.repo.project_metrics(project_id) {
             Ok(m) => ui.set_project_metrics(
                 format!(
-                    "Tempo próprio: {} min | soma das tarefas: {} min | ativas: {}",
-                    m.own_elapsed_ms / 60_000,
-                    m.task_time_ms / 60_000,
+                    "Tempo próprio: {} | soma das tarefas: {} | ativas: {}",
+                    format_elapsed_ms(m.own_elapsed_ms),
+                    format_elapsed_ms(m.task_time_ms),
                     m.running_task_count
                 )
                 .into(),
@@ -374,7 +400,16 @@ fn show(weak: &slint::Weak<AppWindow>, state: &Rc<RefCell<App>>, outcome: Result
 
 #[cfg(all(test, windows))]
 mod tests {
-    use super::{acquire_instance_guard, adjacent_index, allowed_actions};
+    use super::{acquire_instance_guard, adjacent_index, allowed_actions, format_elapsed_ms};
+
+    #[test]
+    fn elapsed_time_is_displayed_with_seconds_without_rounding() {
+        assert_eq!(format_elapsed_ms(0), "00:00:00");
+        assert_eq!(format_elapsed_ms(59_999), "00:00:59");
+        assert_eq!(format_elapsed_ms(65_000), "00:01:05");
+        assert_eq!(format_elapsed_ms(3_723_456), "01:02:03");
+        assert_eq!(format_elapsed_ms(86_400_000), "24:00:00");
+    }
 
     #[test]
     fn task_controls_follow_persisted_status() {
