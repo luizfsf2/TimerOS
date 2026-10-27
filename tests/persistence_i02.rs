@@ -250,3 +250,28 @@ fn failed_checkpoint_preserves_monotonic_anchor_for_retry() {
     let m = repo.project_metrics(&project_id).unwrap();
     assert_eq!((m.own_elapsed_ms, m.task_time_ms), (MIN * 7, MIN * 7));
 }
+
+#[test]
+fn task_chronometer_counts_seconds_for_selected_task_only() {
+    let (dir, clock) = fixture();
+    let mut repo = WorkRepository::open(dir.path().join("timeros.db"), clock.clone()).unwrap();
+    let project_id = repo.create_project("P").unwrap();
+    let a = repo.create_task(&project_id, "A").unwrap();
+    let b = repo.create_task(&project_id, "B").unwrap();
+    assert_eq!(repo.task_elapsed_ms(&a).unwrap(), 0);
+    repo.transition(&a, "start").unwrap();
+    clock.advance_both_ms(12_000);
+    assert_eq!(repo.task_elapsed_ms(&a).unwrap(), 12_000);
+    assert_eq!(repo.task_elapsed_ms(&b).unwrap(), 0);
+    repo.transition(&b, "start").unwrap();
+    clock.advance_both_ms(3_000);
+    assert_eq!(repo.task_elapsed_ms(&a).unwrap(), 15_000);
+    assert_eq!(repo.task_elapsed_ms(&b).unwrap(), 3_000);
+    repo.checkpoint().unwrap();
+    assert_eq!(repo.task_elapsed_ms(&a).unwrap(), 15_000);
+    repo.transition(&a, "pause").unwrap();
+    clock.advance_both_ms(5_000);
+    assert_eq!(repo.task_elapsed_ms(&a).unwrap(), 15_000);
+    assert_eq!(repo.task_elapsed_ms(&b).unwrap(), 8_000);
+}
+

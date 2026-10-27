@@ -397,6 +397,33 @@ impl<C: Clock> WorkRepository<C> {
             running_task_count: u64::try_from(running)?,
         })
     }
+    /// Tempo confirmado mais o trecho monotônico em andamento de UMA tarefa.
+    /// Leitura sem transacao de escrita: UI pode consultar a cada segundo.
+    pub fn task_elapsed_ms(&self, task_id: &str) -> Result<u64> {
+        let confirmed: i64 = self.conn.query_row(
+            "SELECT COALESCE((SELECT SUM(e.confirmed_ms) FROM time_entries e WHERE e.task_id=t.id), 0) FROM tasks t WHERE t.id=?1",
+            [task_id],
+            |row| row.get(0),
+        )?;
+        let now = self.clock.sample();
+        let mut elapsed = u64::try_from(confirmed)?;
+        for (entry_id, anchor) in &self.entries {
+            let parent: String = self.conn.query_row(
+                "SELECT task_id FROM time_entries WHERE id=?1",
+                [entry_id],
+                |row| row.get(0),
+            )?;
+            if parent == task_id {
+                let running = now.awake_ms
+                    .checked_sub(anchor.awake_ms)
+                    .ok_or_else(|| anyhow!("monotonic reversed"))?;
+                elapsed = elapsed.checked_add(running)
+                    .ok_or_else(|| anyhow!("overflow"))?;
+            }
+        }
+        Ok(elapsed)
+    }
+
     pub fn projects(&self) -> Result<Vec<ProjectRow>> {
         let mut stmt = self.conn.prepare(
             "SELECT id,name FROM projects WHERE archived_at_utc IS NULL ORDER BY created_at_utc,id",

@@ -303,6 +303,8 @@ fn refresh(ui: &AppWindow, state: &Rc<RefCell<App>>) {
     ui.set_can_start(false);
     ui.set_can_pause(false);
     ui.set_can_resume(false);
+    ui.set_task_chronometer("00:00:00".into());
+    ui.set_chronometer_status("Sem tarefa selecionada".into());
     // Leitura apenas: nao recriar modelos/indices ligados aos controles da UI.
     let current = state.borrow();
     match current.repo.projects() {
@@ -353,7 +355,20 @@ fn refresh(ui: &AppWindow, state: &Rc<RefCell<App>>) {
                     })
                     .unwrap_or_else(|| "Nenhuma tarefa selecionada".to_string());
                 ui.set_selected_task_label(label.into());
+                if let Some(index) = selected {
+                    match current.repo.task_elapsed_ms(&tasks[index].id) {
+                        Ok(elapsed) => ui.set_task_chronometer(format_elapsed_ms(elapsed).into()),
+                        Err(e) => ui.set_status_line(format!("Erro no cronômetro: {e}").into()),
+                    }
+                }
                 let selected_status = selected.map(|index| tasks[index].status.as_str());
+                ui.set_chronometer_status(match selected_status {
+                    Some("running") => "EM ANDAMENTO".into(),
+                    Some("paused") => "PAUSADO".into(),
+                    Some("stopped") => "PRONTO PARA INICIAR".into(),
+                    Some("completed") => "CONCLUÍDO".into(),
+                    _ => "Sem tarefa selecionada".into(),
+                });
                 let (can_start, can_pause, can_resume) = allowed_actions(selected_status);
                 ui.set_can_start(can_start);
                 ui.set_can_pause(can_pause);

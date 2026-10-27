@@ -3,13 +3,15 @@ import { Button, LineEdit, VerticalBox, HorizontalBox } from "std-widgets.slint"
 export component AppWindow inherits Window {
     title: "TimerOS - trabalho (I02)";
     width: 720px;
-    height: 540px;
+    height: 640px;
 
     in-out property <string> project-name: "";
     in-out property <string> task-name: "";
     in property <string> status-line: "Pronto";
     in property <string> project-metrics: "Sem projeto selecionado";
     in property <string> task-status: "Sem tarefa selecionada";
+    in property <string> task-chronometer: "00:00:00";
+    in property <string> chronometer-status: "Sem tarefa selecionada";
     in property <string> selected-project-label: "Nenhum projeto";
     in property <string> selected-task-label: "Nenhuma tarefa";
     in property <bool> can-start: false;
@@ -59,6 +61,26 @@ export component AppWindow inherits Window {
             Button { text: "Tarefa anterior"; width: 135px; clicked => { root.previous-task(); } }
             Text { text: root.selected-task-label; overflow: elide; vertical-alignment: center; }
             Button { text: "Próxima tarefa"; width: 135px; clicked => { root.next-task(); } }
+        }
+
+        // Mostrador dedicado da tarefa: imediatamente visivel ao iniciar.
+        Text { text: "CRONÔMETRO DA TAREFA"; font-size: 14px; height: 24px; }
+        HorizontalBox {
+            height: 66px;
+            spacing: 16px;
+            Text {
+                text: root.task-chronometer;
+                font-size: 42px;
+                font-weight: 700;
+                width: 266px;
+                vertical-alignment: center;
+            }
+            Text {
+                text: root.chronometer-status;
+                font-size: 15px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
         }
 
         Text { text: root.project-metrics; height: 28px; overflow: elide; vertical-alignment: center; }
