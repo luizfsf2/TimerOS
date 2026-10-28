@@ -414,10 +414,12 @@ impl<C: Clock> WorkRepository<C> {
                 |row| row.get(0),
             )?;
             if parent == task_id {
-                let running = now.awake_ms
+                let running = now
+                    .awake_ms
                     .checked_sub(anchor.awake_ms)
                     .ok_or_else(|| anyhow!("monotonic reversed"))?;
-                elapsed = elapsed.checked_add(running)
+                elapsed = elapsed
+                    .checked_add(running)
                     .ok_or_else(|| anyhow!("overflow"))?;
             }
         }

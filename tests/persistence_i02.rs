@@ -274,4 +274,3 @@ fn task_chronometer_counts_seconds_for_selected_task_only() {
     assert_eq!(repo.task_elapsed_ms(&a).unwrap(), 15_000);
     assert_eq!(repo.task_elapsed_ms(&b).unwrap(), 8_000);
 }
-
